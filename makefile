@@ -1,9 +1,11 @@
 
-write: compile
-	sudo avrdude -p m328pb -c xplainedmini -U flash:w:out.hex
+write: obj
+	sudo avrdude -p m328pb -c xplainedmini -B 10 -U flash:w:main.hex:a
 
 compile: 
-	avr-gcc -mmcu=atmega328pb main.c -o out.hex
+	avr-gcc -Wall -g2 -O1 -std=gnu99 -funsigned-char -funsigned-bitfields -mmcu=atmega328pb main.c -o main.elf
 
+obj: compile 
+	avr-objcopy -R .eeprom -O ihex main.elf main.hex
 clean:
 	rm -rf *.hex
