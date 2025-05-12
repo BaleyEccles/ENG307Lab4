@@ -53,11 +53,13 @@ int main(void) {
   DDRB |= (1 << PB5); // set PB5 as output pin
   while (1) {
     uint16_t adc_value = ADC_read(ADC_CHANNEL); // Read ADC value
+
     char str[20];
-    USART_Transmit_String("ADC val:\n");
-    float voltage = (adc_value / 1023.0f) * 5.0f;
-    sprintf(str, "%d\n", adc_value);
-    USART_Transmit_String(str);
+    double voltage = 1000.f*(((float)adc_value / 1023.0f) * 5.0f);
+
+    sprintf(str, "ADC val = %d mV\n", (uint16_t)voltage);
+    USART_Transmit_String(str);    
+
 
     _delay_ms(1000);
     PORTB ^= (1 << PB5); // set PB5 high
