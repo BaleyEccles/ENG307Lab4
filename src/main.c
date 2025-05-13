@@ -9,50 +9,38 @@
 #include <stdbool.h>
 #include "usart.h"
 
-#define ADC_CHANNEL 0
-void ADC_init() {
+
+void ADC_init(uint8_t channel) {
     ADMUX = (1 << REFS0); // AVcc with external capacitor at AREF pin
-    ADMUX |= (ADC_CHANNEL & 0b00000111);
+    ADMUX |= (channel & 0b00000111);
 
     // Enable the ADC and set the prescaler to 64 (for 16 MHz clock)
     ADCSRA = (1 << ADEN) | (1 << ADPS2) | (1 << ADPS1);
 }
 
 uint16_t ADC_read(uint8_t channel) {
-  ADMUX = (ADMUX & 0xF8) | (channel & 0b00000111);
+  ADMUX = (ADMUX & 0b11111000) // Keep first 5 bits
+    | (channel & 0b00000111); // Set the channel to read from
+  
+  ADCSRA |= (1 << ADSC); // Start conversion
 
-  ADCSRA |= (1 << ADSC);
-
-  while (ADCSRA & (1 << ADSC));
+  while (ADCSRA & (1 << ADSC)); // Wait untill conversion is done
 
   return ADC;
 }
 
-//void adcStartMeasurement() {
-//  ADCSRA |= (1 << ADSC);
-//}
-//
-//int ADC_get() {
-//  adcStartMeasurement();
-//  
-//  while (!(ADCSRA & (1 << ADIF))); // Wait for conversion to complete
-//  
-//  uint16_t low = ADCL; // Read low byte
-//  uint16_t high = ADCH; // Read high byte
-//  int Vcc_value = (1.1 * 1024 * 1000) / (low + (high << 8)); // Calculate Vcc in mV
-//  
-//  ADCSRA |= (1 << ADIF); // Clear the ADIF flag
-//  return Vcc_value;
-  //}
-
-
 
 int main(void) {
-  ADC_init();
+  // Number from 0 -> 15
+  // 0 -> 7 map to PC0 -> PC7
+  // See data sheet for 8 -> 15
+  uint8_t channel = 0;
+  ADC_init(channel);
   USART_Init(MY_UBRR);
   DDRB |= (1 << PB5); // set PB5 as output pin
+
   while (1) {
-    uint16_t adc_value = ADC_read(ADC_CHANNEL); // Read ADC value
+    uint16_t adc_value = ADC_read(channel); // Read ADC value
 
     char str[20];
     double voltage = 1000.f*(((float)adc_value / 1023.0f) * 5.0f);
@@ -61,7 +49,7 @@ int main(void) {
     USART_Transmit_String(str);    
 
 
-    _delay_ms(1000);
+    _delay_ms(100);
     PORTB ^= (1 << PB5); // set PB5 high
 
   }
